@@ -2,14 +2,15 @@ services:
   - type: web
     name: ipl-auction-app
     env: node
-    # Build: install all deps and compile React frontend
-    buildCommand: npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend
-    # Start: Node.js serves both the API and the compiled React app
+    # NODE_ENV=development during install so devDeps (vite, etc.) are included
+    buildCommand: >
+      npm install --prefix backend &&
+      NODE_ENV=development npm install --prefix frontend &&
+      npm run build --prefix frontend
+    # At runtime, Node.js serves the compiled React app + API
     startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: JWT_SECRET
         generateValue: true
