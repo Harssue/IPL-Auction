@@ -8,9 +8,6 @@ router.register(r'teams',   views.TeamViewSet)
 router.register(r'players', views.PlayerViewSet)
 
 urlpatterns = [
-    # ── Master data ──────────────────────────────────────────────────────────
-    path('', include(router.urls)),
-
     # ── Auth ─────────────────────────────────────────────────────────────────
     path('auth/register/', views.register,               name='register'),
     path('auth/login/',    TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -30,4 +27,7 @@ urlpatterns = [
     # ── Auction ───────────────────────────────────────────────────────────────
     path('auction/<int:game_id>/',       views.auction_state, name='auction_state'),
     path('auction/<int:game_id>/bid/',   views.place_bid,     name='place_bid'),
+
+    # ── Master data (Fallback) ────────────────────────────────────────────────
+    path('', include(router.urls)),
 ]
