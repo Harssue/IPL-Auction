@@ -15,4 +15,4 @@ import socketio
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ipl_sim.settings')
 
 django_asgi_app = get_asgi_application()
-application = socketio.ASGIApp(sio, django_asgi_app)
+application = socketio.ASGIApp(sio, django_asgi_app, socketio_path='api/socket.io')
