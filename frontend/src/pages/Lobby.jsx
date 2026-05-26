@@ -33,7 +33,7 @@ const IPL_TEAM_COLORS = {
 export default function Lobby() {
   const { gameId } = useParams();
   const { user, token } = useAuth();
-  const { on, off, joinLobby, emitStartAuction } = useSocket();
+  const { on, off, joinLobby, emitStartAuction, connected } = useSocket();
   const navigate = useNavigate();
 
   const [game, setGame] = useState(null);
@@ -85,10 +85,10 @@ export default function Lobby() {
 
   // Join socket lobby
   useEffect(() => {
-    if (gameId && userId) {
+    if (gameId && userId && connected) {
       joinLobby(gameId, userId);
     }
-  }, [gameId, userId, joinLobby]);
+  }, [gameId, userId, connected, joinLobby]);
 
   // Socket events
   useEffect(() => {

@@ -137,6 +137,7 @@ class AuctionService {
       nominatingTeam,
       round: live.round,
       remainingPlayers: live.playerPool.length + 1,
+      serverTime: new Date().toISOString(),
     });
 
     // Start countdown timer
@@ -192,6 +193,7 @@ class AuctionService {
       amount,
       timerEnd: newTimerEnd.toISOString(),
       isAI,
+      serverTime: new Date().toISOString(),
     });
 
     // Re-schedule AI bids (other AI teams respond)

@@ -83,6 +83,8 @@ module.exports = function registerAuctionSocket(io) {
               round: live.round,
               log: live.log.slice(0, 30),
               teamStates: [...live.teamStates.values()],
+              remainingPlayers: live.playerPool.length + (live.currentPlayer ? 1 : 0),
+              serverTime: new Date().toISOString(),
             });
           }
         }

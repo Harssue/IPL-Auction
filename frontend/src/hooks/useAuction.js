@@ -22,6 +22,12 @@ export function useAuction(gameId) {
   const [remainingPlayers, setRemainingPlayers] = useState(0);
 
   const timerRef = useRef(null);
+  const serverClockOffsetRef = useRef(0);
+  const gameTeamsRef = useRef([]);
+
+  useEffect(() => {
+    gameTeamsRef.current = gameTeams;
+  }, [gameTeams]);
 
   // Load initial auction state
   useEffect(() => {
@@ -59,7 +65,8 @@ export function useAuction(gameId) {
       return;
     }
     const update = () => {
-      const remaining = Math.max(0, Math.ceil((new Date(timerEnd) - Date.now()) / 1000));
+      const serverNow = Date.now() + serverClockOffsetRef.current;
+      const remaining = Math.max(0, Math.ceil((new Date(timerEnd) - serverNow) / 1000));
       setTimerSeconds(remaining);
       if (remaining <= 0) clearInterval(timerRef.current);
     };
@@ -79,17 +86,47 @@ export function useAuction(gameId) {
   useEffect(() => {
     if (!socket) return;
 
+    const updateOffset = (serverTime) => {
+      if (serverTime) {
+        serverClockOffsetRef.current = new Date(serverTime) - Date.now();
+      }
+    };
+
     const handleLobbyState = ({ gameTeams: gt }) => {
       if (gt?.length > 0) setGameTeams(gt);
     };
 
-    const handleAuctionResumed = ({ status: s, currentPlayer: p, currentBid: cb, highestBidder: hb, timerEnd: te, round: r, log: l, teamStates }) => {
+    const handleAuctionResumed = ({ status: s, currentPlayer: p, currentBid: cb, highestBidder: hb, timerEnd: te, round: r, log: l, teamStates, remainingPlayers: rem, serverTime }) => {
+      updateOffset(serverTime);
       setStatus(s || 'bidding');
       setCurrentPlayer(p || null);
       setCurrentBid(cb || 0);
-      setHighestBidder(hb ? { gameTeamId: hb } : null);
+      
+      if (hb) {
+        const teamInfo = teamStates?.find(t => t.id === hb) || gameTeamsRef.current.find(t => t.id === hb);
+        setHighestBidder({
+          gameTeamId: hb,
+          teamName: teamInfo?.teamName || teamInfo?.Team?.shortName || 'Unknown Team',
+          teamColor: teamInfo?.teamColor || teamInfo?.Team?.primaryColor || '#f59e0b',
+        });
+      } else {
+        setHighestBidder(null);
+      }
+
       setTimerEnd(te || null);
       setRound(r || 0);
+      setRemainingPlayers(rem || 0);
+
+      if (Array.isArray(l)) {
+        setLog(l.map(logItem => ({
+          id: Date.now() + Math.random(),
+          message: logItem.type === 'sold'
+            ? `🔨 SOLD! ${logItem.player?.name} → ${logItem.soldTo?.name || logItem.soldTo} for ₹${logItem.soldPrice}L`
+            : `❌ UNSOLD — ${logItem.player?.name}`,
+          timestamp: new Date(logItem.timestamp).toLocaleTimeString(),
+        })));
+      }
+
       if (teamStates) {
         setGameTeams(prev => prev.map(gt => {
           const ts = teamStates.find(t => t.id === gt.id);
@@ -112,7 +149,8 @@ export function useAuction(gameId) {
       }
     };
 
-    const handlePlayerNominated = ({ player, currentBid: cb, timerEnd: te, round: r, remainingPlayers: rem }) => {
+    const handlePlayerNominated = ({ player, currentBid: cb, timerEnd: te, round: r, remainingPlayers: rem, serverTime }) => {
+      updateOffset(serverTime);
       setCurrentPlayer(player);
       setCurrentBid(cb || player?.basePrice || 0);
       setHighestBidder(null);
@@ -124,7 +162,8 @@ export function useAuction(gameId) {
       addLog(`🎯 ${player?.name} UP — Base: ₹${player?.basePrice}L`);
     };
 
-    const handleBidPlaced = ({ gameTeamId, teamName, teamColor, amount, timerEnd: te, isAI }) => {
+    const handleBidPlaced = ({ gameTeamId, teamName, teamColor, amount, timerEnd: te, isAI, serverTime }) => {
+      updateOffset(serverTime);
       setCurrentBid(amount);
       setHighestBidder({ gameTeamId, teamName, teamColor });
       setTimerEnd(te);

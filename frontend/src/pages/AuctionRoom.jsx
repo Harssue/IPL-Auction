@@ -22,7 +22,7 @@ import {
 export default function AuctionRoom() {
   const { gameId } = useParams();
   const { user, token } = useAuth();
-  const { joinLobby } = useSocket();
+  const { joinLobby, connected } = useSocket();
   const navigate = useNavigate();
 
   const [game, setGame] = useState(null);
@@ -64,10 +64,10 @@ export default function AuctionRoom() {
 
   // Join socket room
   useEffect(() => {
-    if (gameId && userId) {
+    if (gameId && userId && connected) {
       joinLobby(gameId, userId);
     }
-  }, [gameId, userId, joinLobby]);
+  }, [gameId, userId, connected, joinLobby]);
 
   // Show notification on events
   useEffect(() => {
