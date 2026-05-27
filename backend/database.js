@@ -1,17 +1,19 @@
-const { Sequelize } = require('sequelize');
-const path = require('path');
+const mongoose = require('mongoose');
+const dns = require('dns');
 require('dotenv').config();
 
-const dbPath = process.env.DB_PATH || './ipl_auction.sqlite3';
+// Local DNS resolvers often block SRV record lookups used by MongoDB Atlas.
+// Override to use Google's public DNS to ensure the +srv connection string works.
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: path.resolve(dbPath),
-  logging: false,
-  define: {
-    timestamps: true,
-    underscored: false,
-  },
-});
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`[DB] MongoDB connected: ${conn.connection.host}`);
+  } catch (err) {
+    console.error('[DB] MongoDB connection error:', err);
+    process.exit(1);
+  }
+};
 
-module.exports = sequelize;
+module.exports = connectDB;

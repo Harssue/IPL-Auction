@@ -8,25 +8,28 @@ const router = express.Router();
 // GET /api/auction/:gameId — Get current auction state
 router.get('/:gameId', authenticate, async (req, res) => {
   try {
-    const state = await AuctionState.findOne({ where: { gameId: req.params.gameId } });
+    const state = await AuctionState.findOne({ gameId: req.params.gameId });
     if (!state) return res.status(404).json({ error: 'Auction not found' });
 
-    const gameTeams = await GameTeam.findAll({
-      where: { gameId: req.params.gameId },
-      include: [
-        { model: Team, as: 'Team' },
-        { model: User, as: 'User', attributes: ['id', 'username'] },
-      ],
-    });
+    const gameTeams = await GameTeam.find({ gameId: req.params.gameId })
+      .populate('teamId')
+      .populate('userId', 'username');
+
+    // Alias populated fields for frontend compatibility
+    const formattedTeams = gameTeams.map((gt) => ({
+      ...gt.toObject(),
+      Team: gt.teamId,
+      User: gt.userId,
+    }));
 
     let currentPlayer = null;
     if (state.currentPlayerId) {
-      currentPlayer = await Player.findByPk(state.currentPlayerId);
+      currentPlayer = await Player.findById(state.currentPlayerId);
     }
 
     res.json({
       auction: {
-        id: state.id,
+        id: state._id,
         gameId: state.gameId,
         status: state.status,
         currentPlayer,
@@ -37,7 +40,7 @@ router.get('/:gameId', authenticate, async (req, res) => {
         log: state.logJson,
         remainingPlayers: state.playerPoolJson.length,
       },
-      gameTeams,
+      gameTeams: formattedTeams,
     });
   } catch (err) {
     console.error('Auction state error:', err);

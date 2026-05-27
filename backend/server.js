@@ -5,7 +5,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 
-const { sequelize, Team, Player } = require('./models');
+const connectDB = require('./database');
+const { Team, Player } = require('./models');
 const auctionService = require('./services/auctionService');
 const registerAuctionSocket = require('./socket/auctionSocket');
 
@@ -50,32 +51,29 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
-// ── DB Sync + Seed ────────────────────────────────────────────────
+// ── Seed Database ─────────────────────────────────────────────────
 async function seedDatabase() {
   // Seed teams
-  const existingTeams = await Team.count();
+  const existingTeams = await Team.countDocuments();
   if (existingTeams === 0) {
     console.log('[Seed] Seeding 10 IPL teams...');
-    await Team.bulkCreate(teamsData);
+    await Team.insertMany(teamsData);
     console.log('[Seed] Teams seeded.');
   }
 
   // Seed players
-  const existingPlayers = await Player.count();
+  const existingPlayers = await Player.countDocuments();
   if (existingPlayers === 0) {
     console.log('[Seed] Seeding players...');
-    await Player.bulkCreate(playersData);
+    await Player.insertMany(playersData);
     console.log(`[Seed] ${playersData.length} players seeded.`);
   }
 }
 
+// ── Start Server ──────────────────────────────────────────────────
 async function startServer() {
   try {
-    await sequelize.authenticate();
-    console.log('[DB] SQLite connection established.');
-
-    await sequelize.sync();
-    console.log('[DB] Models synced.');
+    await connectDB();
 
     await seedDatabase();
 

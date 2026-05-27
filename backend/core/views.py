@@ -11,6 +11,8 @@ from .serializers import (
     GameAuctionStateSerializer,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
+from core.socket_app import sio, _room
+import asyncio
 
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -79,6 +81,8 @@ def join_game(request):
             'game':      GameSerializer(game).data,
             'gameTeams': GameTeamSerializer(game_teams, many=True).data,
         })
+    
+    GameTeam.objects.create(game=game, User=request.user, isAI=False)
 
     return Response({
         'game':      GameSerializer(game).data,
@@ -162,13 +166,21 @@ def select_team(request):
         return Response({'detail': 'Game already started.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Release any team this user previously held
-    GameTeam.objects.filter(game=game, user=request.user).delete()
+    # GameTeam.objects.filter(game=game, user=request.user).delete()
 
-    # Check if team is already taken by another user
-    if GameTeam.objects.filter(game=game, team=team, isAI=False).exists():
-        return Response({'detail': 'Team already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+    # # Check if team is already taken by another user
+    # if GameTeam.objects.filter(game=game, team=team, isAI=False).exists():
+    #     return Response({'detail': 'Team already taken.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    gt = GameTeam.objects.create(game=game, user=request.user, team=team, isAI=False)
+    # gt = GameTeam.objects.create(game=game, user=request.user, team=team, isAI=False)
+
+    if (GameTeam.objects.filter(game=game, team=team, isAI=False).exclude(user=request.user).exists()):
+        return Response({'detail':'Team already Taken!...'}, ...)
+    gt, _ = GameTeam.objects.update_or_create(
+        game=game, user=request.user,
+        defaults={'team': team, 'isAI': False}
+    )
+
     return Response({'gameTeam': GameTeamSerializer(gt).data})
 
 
@@ -234,6 +246,8 @@ def place_bid(request, game_id):
     state.highestBidder = gt
     state.timerEnd     = timezone.now() + timezone.timedelta(seconds=10)
     state.save()
+
+    asyncio.create_task(sio.emit('bid-placed', {...}, room=_room(game_id)))
 
     return Response({'detail': 'Bid placed successfully.'})
 

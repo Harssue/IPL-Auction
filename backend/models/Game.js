@@ -1,40 +1,35 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const mongoose = require('mongoose');
 
-const Game = sequelize.define('Game', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  lobbyCode: {
-    type: DataTypes.STRING(8),
-    unique: true,
-    allowNull: false,
-  },
-  status: {
-    type: DataTypes.ENUM('waiting', 'auction', 'complete'),
-    defaultValue: 'waiting',
-  },
-  hostUserId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  maxPlayers: {
-    type: DataTypes.INTEGER,
-    defaultValue: 10,
-  },
-  playerPoolJson: {
-    type: DataTypes.TEXT,
-    defaultValue: '[]',
-    get() {
-      const val = this.getDataValue('playerPoolJson');
-      try { return JSON.parse(val); } catch { return []; }
+const gameSchema = new mongoose.Schema(
+  {
+    lobbyCode: {
+      type: String,
+      required: true,
+      unique: true,
+      maxlength: 8,
     },
-    set(val) {
-      this.setDataValue('playerPoolJson', JSON.stringify(val));
+    status: {
+      type: String,
+      enum: ['waiting', 'auction', 'complete'],
+      default: 'waiting',
+    },
+    hostUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    maxPlayers: {
+      type: Number,
+      default: 10,
+    },
+    // Stores the shuffled player ObjectId pool for this game's auction
+    playerPool: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'Player',
+      default: [],
     },
   },
-});
+  { timestamps: true }
+);
 
-module.exports = Game;
+module.exports = mongoose.model('Game', gameSchema);

@@ -303,7 +303,7 @@ async def disconnect(sid):
     print(f'[Socket] Client disconnected: {sid}')
 
 
-@sio.event
+@sio.on('join-lobby')
 async def join_lobby(sid, data):
     """Client joins a game room and receives current state."""
     game_id = data.get('gameId')
@@ -353,7 +353,7 @@ async def start_auction(sid, data):
     _auction_tasks[game_id] = asyncio.create_task(_run_auction(game_id))
 
 
-@sio.event
+@sio.on('place-bid')
 async def place_bid(sid, data):
     """A human player places a bid via socket (after the REST call succeeds)."""
     game_id     = data.get('gameId')

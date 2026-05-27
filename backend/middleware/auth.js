@@ -9,9 +9,8 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(payload.id, {
-      attributes: ['id', 'username', 'email'],
-    });
+    // findById replaces findByPk; select only needed fields
+    const user = await User.findById(payload.id).select('_id username email');
     if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
     next();
